@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Il mio Primo Progetto in Creative Coding</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050505;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <script>
+        // 1. Creazione della scena (telecamera e renderer)
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 2. Creazione particelle
+        const particelleConteggio = 1500; 
+        const geometry = new THREE.BufferGeometry();
+        const posizioni = new Float32Array(particelleConteggio * 3); 
+
+        for(let i = 0; i < particelleConteggio * 3; i++) {
+            
+            posizioni[i] = (Math.random() - 0.5) * 10; 
+        }
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(posizioni, 3));
+
+        
+        const material = new THREE.PointsMaterial({
+            size: 0.03,
+            color: 0x00ffcc,
+            transparent: true,
+            opacity: 0.8
+        });
+
+       
+        const costellazione = new THREE.Points(geometry, material);
+        scene.add(costellazione);
+
+       
+        camera.position.z = 3;
+
+        // 3. Aggiungiamo interattività con il mouse 
+        let mouseX = 0;
+        let mouseY = 0;
+
+        document.addEventListener('mousemove', (event) => {
+            // Trascinamento della posizione del mouse
+            mouseX = (event.clientX - window.innerWidth / 2) / 100;
+            mouseY = (event.clientY - window.innerHeight / 2) / 100;
+        });
+
+        // 4. Loop dell'animazione
+        function animate() {
+            requestAnimationFrame(animate);
+
+            costellazione.rotation.y += 0.002;
+            costellazione.rotation.x += 0.001;
+
+
+            costellazione.position.x += (mouseX - costellazione.position.x) * 0.05;
+            costellazione.position.y += (-mouseY - costellazione.position.y) * 0.05;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // 5. Gestione del ridimensionamento della finestra
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
