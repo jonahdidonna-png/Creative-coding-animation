@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sfera d'Onde Interattiva - Three.js</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: radial-gradient(circle, #101026 0%, #050508 100%); /* Sfondo sfumato profondo */
+        }
+        canvas { display: block; }
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <script>
+        // 1. SETUP DELLA SCENA
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        camera.position.z = 5;
+
+        // 2. CREAZIONE DELLA SFERA DI PARTICELLE
+        const raggioSfera = 2;
+        const particelleConteggio = 4000; 
+        const geometry = new THREE.BufferGeometry();
+        
+    
+        const posizioni = new Float32Array(particelleConteggio * 3);
+       
+        const posizioniOriginali = new Float32Array(particelleConteggio * 3);
+       
+        const colori = new Float32Array(particelleConteggio * 3);
+
+        const color = new THREE.Color();
+
+        for (let i = 0; i < particelleConteggio; i++) {
+            const i3 = i * 3;
+
+          
+            const phi = Math.acos(-1 + (2 * i) / particelleConteggio);
+            const theta = Math.sqrt(particelleConteggio * Math.PI) * phi;
+
+            const x = raggioSfera * Math.sin(phi) * Math.cos(theta);
+            const y = raggioSfera * Math.sin(phi) * Math.sin(theta);
+            const z = raggioSfera * Math.cos(phi);
+
+            posizioni[i3] = x;
+            posizioni[i3 + 1] = y;
+            posizioni[i3 + 2] = z;
+
+            posizioniOriginali[i3] = x;
+            posizioniOriginali[i3 + 1] = y;
+            posizioniOriginali[i3 + 2] = z;
+
+            color.setHSL((y + raggioSfera) / (raggioSfera * 2), 0.8, 0.5);
+            colori[i3] = color.r;
+            colori[i3 + 1] = color.g;
+            colori[i3 + 2] = color.b;
+        }
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(posizioni, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colori, 3));
+
+        const material = new THREE.PointsMaterial({
+            size: 0.04,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.9,
+            blending: THREE.AdditiveBlending 
+        });
+
+        const sferaOnde = new THREE.Points(geometry, material);
+        scene.add(sferaOnde);
+
+        // 3. TRACCIAMENTO DEL MOUSE NELLO SPAZIO 3D
+        const mouse = new THREE.Vector2(-100, -100); 
+        const targetMouse = new THREE.Vector3();
+        const raycaster = new THREE.Raycaster();
+        const pianoInvisibile = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+
+        window.addEventListener('mousemove', (event) => {
+          
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            raycaster.ray.intersectPlane(pianoInvisibile, targetMouse);
+        });
+
+        // 4. ANIMAZIONE (ONDE + INTERAZIONE)
+        let clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const tempo = clock.getElapsedTime() * 2;
+            const posAttribute = geometry.attributes.position;
+            const posArray = posAttribute.array;
+
+            sferaOnde.rotation.y += 0.001;
+
+            for (let i = 0; i < particelleConteggio; i++) {
+                const i3 = i * 3;
+
+                // 1. L'EFFETTO ONDA: Usiamo il seno e il coseno basandoci sulla posizione originale
+                const xOrig = posPositionsOrig = posizioniOriginali[i3];
+                const yOrig = posizioniOriginali[i3 + 1];
+                const zOrig = posizioniOriginali[i3 + 2];
+
+             
+                const fattoreOnda = 1 + Math.sin(xOrig * 1.5 + tempo) * 0.15 * Math.cos(yOrig * 1.5 + tempo);
+
+              
+                let targetX = xOrig * fattoreOnda;
+                let targetY = yOrig * fattoreOnda;
+                let targetZ = zOrig * fattoreOnda;
+
+                // 2. INTERAZIONE MOUSE: Controlliamo la distanza tra il mouse 3D e la particella corrente
+                const pX = posArray[i3];
+                const pY = posArray[i3 + 1];
+                const pZ = posArray[i3 + 2];
+
+                const dx = pX - targetMouse.x;
+                const dy = pY - targetMouse.y;
+                const dz = pZ - targetMouse.z;
+                const distanza = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+               
+                if (distanza < 1.2) {
+                    const forza = (1.2 - distanza) / 1.2; 
+                  
+                    targetX += (dx / distanza) * forza * 1.5;
+                    targetY += (dy / distanza) * forza * 1.5;
+                    targetZ += (dz / distanza) * forza * 0.5;
+                }
+
+                // 3. EFFETTO MOLLA (RI-ATTACCO): La particella si sposta dolcemente verso la sua posizione target
+                posArray[i3] += (targetX - posArray[i3]) * 0.1;
+                posArray[i3 + 1] += (targetY - posArray[i3 + 1]) * 0.1;
+                posArray[i3 + 2] += (targetZ - posArray[i3 + 2]) * 0.1;
+            }
+
+           
+            posAttribute.needsUpdate = true;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // 5. RIDIMENSIONAMENTO FINESTRA
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
