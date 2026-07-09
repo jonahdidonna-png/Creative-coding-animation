@@ -8,7 +8,7 @@
         body {
             margin: 0;
             overflow: hidden;
-            background: radial-gradient(circle, #101026 0%, #050508 100%); /* Sfondo sfumato profondo */
+            background: radial-gradient(circle, #101026 0%, #050508 100%); 
         }
         canvas { display: block; }
     </style>
@@ -80,22 +80,33 @@
         const sferaOnde = new THREE.Points(geometry, material);
         scene.add(sferaOnde);
 
-        // 3. TRACCIAMENTO DEL MOUSE NELLO SPAZIO 3D
-        const mouse = new THREE.Vector2(-100, -100); 
+        // 3. TRACCIAMENTO DEL MOUSE 
+        const mouse = new THREE.Vector2(-100, -100);
         const targetMouse = new THREE.Vector3();
         const raycaster = new THREE.Raycaster();
-        const pianoInvisibile = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+        
+        const sferaMatematica = new THREE.Sphere(new THREE.Vector3(0, 0, 0), raggioSfera + 0.2); 
 
         window.addEventListener('mousemove', (event) => {
-          
+        
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
+           
             raycaster.setFromCamera(mouse, camera);
-            raycaster.ray.intersectPlane(pianoInvisibile, targetMouse);
+
+            
+            const intersezione = new THREE.Vector3();
+            if (raycaster.ray.intersectSphere(sferaMatematica, intersezione)) {
+             
+                targetMouse.copy(intersezione);
+            } else {
+               
+                targetMouse.set(-100, -100, -100);
+            }
         });
 
-        // 4. ANIMAZIONE (ONDE + INTERAZIONE)
+        // 4. ANIMAZIONI
         let clock = new THREE.Clock();
 
         function animate() {
@@ -105,44 +116,44 @@
             const posAttribute = geometry.attributes.position;
             const posArray = posAttribute.array;
 
-            sferaOnde.rotation.y += 0.001;
+           
 
-            for (let i = 0; i < particelleConteggio; i++) {
+           for (let i = 0; i < particelleConteggio; i++) {
                 const i3 = i * 3;
 
-                // 1. L'EFFETTO ONDA: Usiamo il seno e il coseno basandoci sulla posizione originale
-                const xOrig = posPositionsOrig = posizioniOriginali[i3];
+                // 1. POSIZIONE ORIGINALE 
+                const xOrig = posizioniOriginali[i3];
                 const yOrig = posizioniOriginali[i3 + 1];
                 const zOrig = posizioniOriginali[i3 + 2];
 
-             
+                // Effetto onda naturale basato sul tempo
                 const fattoreOnda = 1 + Math.sin(xOrig * 1.5 + tempo) * 0.15 * Math.cos(yOrig * 1.5 + tempo);
 
-              
                 let targetX = xOrig * fattoreOnda;
                 let targetY = yOrig * fattoreOnda;
                 let targetZ = zOrig * fattoreOnda;
 
-                // 2. INTERAZIONE MOUSE: Controlliamo la distanza tra il mouse 3D e la particella corrente
-                const pX = posArray[i3];
-                const pY = posArray[i3 + 1];
-                const pZ = posArray[i3 + 2];
-
-                const dx = pX - targetMouse.x;
-                const dy = pY - targetMouse.y;
-                const dz = pZ - targetMouse.z;
+                // 2. CALCOLO DELLA DISTANZA DALLA POSIZIONE ORIGINALE
+            
+                const dx = targetX - targetMouse.x;
+                const dy = targetY - targetMouse.y;
+                const dz = targetZ - targetMouse.z;
                 const distanza = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-               
-                if (distanza < 1.2) {
-                    const forza = (1.2 - distanza) / 1.2; 
+                
+                if (distanza < 1.5) {
                   
-                    targetX += (dx / distanza) * forza * 1.5;
-                    targetY += (dy / distanza) * forza * 1.5;
-                    targetZ += (dz / distanza) * forza * 0.5;
+                    const forza = (1 - distanza) / 1; 
+
+                    
+                   
+                    targetX += (dx / distanza) * forza * 1;
+                    targetY += (dy / distanza) * forza * 1;
+                    targetZ += (dz / distanza) * forza * 1;
                 }
 
-                // 3. EFFETTO MOLLA (RI-ATTACCO): La particella si sposta dolcemente verso la sua posizione target
+                // 3. EFFETTO MOLLA
+      
                 posArray[i3] += (targetX - posArray[i3]) * 0.1;
                 posArray[i3 + 1] += (targetY - posArray[i3 + 1]) * 0.1;
                 posArray[i3 + 2] += (targetZ - posArray[i3 + 2]) * 0.1;
