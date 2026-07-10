@@ -29,18 +29,23 @@
         document.body.appendChild(renderer.domElement);
 
         // 2. Creazione particelle
-        const particelleConteggio = 1500; 
+        const particelleConteggio = 6000; 
         const geometry = new THREE.BufferGeometry();
         const posizioni = new Float32Array(particelleConteggio * 3); 
 
-        for(let i = 0; i < particelleConteggio * 3; i++) {
-            
-            posizioni[i] = (Math.random() - 0.5) * 10; 
+        for(let i = 0; i < particelleConteggio; i++) {
+            const i3 = i * 3;
+
+            posizioni[i3 + 0] = (Math.random() - 0.5) * 60; 
+
+            posizioni[i3 + 1] = (Math.random() - 0.5) * 30; 
+
+            posizioni[i3 + 2] = (Math.random() - 0.5) * 20; 
         }
 
         geometry.setAttribute('position', new THREE.BufferAttribute(posizioni, 3));
 
-        
+
         const material = new THREE.PointsMaterial({
             size: 0.03,
             color: 0x00ffcc,
@@ -48,12 +53,8 @@
             opacity: 0.8
         });
 
-       
         const costellazione = new THREE.Points(geometry, material);
         scene.add(costellazione);
-
-       
-        camera.position.z = 3;
 
         // 3. Aggiungiamo interattività con il mouse 
         let mouseX = 0;
